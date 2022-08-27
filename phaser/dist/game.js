@@ -13,7 +13,7 @@ gameScene.create = function() {
     bg.setOrigin(0,0);
     let pp = this.add.sprite(1000,500,'powerplant');
     pp.depth =  1; //not necessary here but good for refence
-    pp.setScale(0.4,0.4);
+    pp.setScale(0.3);
 }
 
 //config
