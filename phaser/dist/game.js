@@ -13,7 +13,7 @@ gameScene.preload = function(){
 gameScene.create = function() {
     let bg = this.add.sprite(0,0,'background');
     bg.setOrigin(0,0);
-    let pp = this.add.sprite(1600,500,'powerplant');
+    let pp = this.add.sprite(1680,500,'powerplant');
     pp.depth =  1; //not necessary here but good for refence
     pp.setScale(0.3);
 
