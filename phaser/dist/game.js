@@ -11,7 +11,7 @@ gameScene.preload = function(){
 gameScene.create = function() {
     let bg = this.add.sprite(0,0,'background');
     bg.setOrigin(0,0);
-    let pp = this.add.sprite(1000,1000,'powerplant');
+    let pp = this.add.sprite(1000,500,'powerplant');
 }
 
 //config
