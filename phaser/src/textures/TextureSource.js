@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -39,7 +39,7 @@ var TextureSource = new Class({
         var game = texture.manager.game;
 
         /**
-         * A reference to the Canvas or WebGL Renderer.
+         * The Texture this TextureSource belongs to.
          *
          * @name Phaser.Textures.TextureSource#renderer
          * @type {(Phaser.Renderer.Canvas.CanvasRenderer|Phaser.Renderer.WebGL.WebGLRenderer)}
@@ -48,7 +48,7 @@ var TextureSource = new Class({
         this.renderer = game.renderer;
 
         /**
-         * The Texture this TextureSource instance belongs to.
+         * The Texture this TextureSource belongs to.
          *
          * @name Phaser.Textures.TextureSource#texture
          * @type {Phaser.Textures.Texture}
@@ -61,10 +61,8 @@ var TextureSource = new Class({
          *
          * This is either an Image Element, a Canvas Element, a Video Element, a RenderTexture or a WebGLTexture.
          *
-         * In Phaser 3.60 and above it can also be a Compressed Texture data object.
-         *
          * @name Phaser.Textures.TextureSource#source
-         * @type {(HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|Phaser.GameObjects.RenderTexture|WebGLTexture|Phaser.Types.Textures.CompressedTextureData)}
+         * @type {(HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|Phaser.GameObjects.RenderTexture|WebGLTexture)}
          * @since 3.12.0
          */
         this.source = source;
@@ -78,19 +76,17 @@ var TextureSource = new Class({
          * @type {(HTMLImageElement|HTMLCanvasElement|HTMLVideoElement)}
          * @since 3.0.0
          */
-        this.image = (source.compressed) ? null : source;
+        this.image = source;
 
         /**
-         * Holds the compressed textured algorithm, or `null` if it's not a compressed texture.
-         *
-         * Prior to Phaser 3.60 this value always held `null`.
+         * Currently un-used.
          *
          * @name Phaser.Textures.TextureSource#compressionAlgorithm
          * @type {number}
          * @default null
          * @since 3.0.0
          */
-        this.compressionAlgorithm = (source.compressed) ? source.format : null;
+        this.compressionAlgorithm = null;
 
         /**
          * The resolution of the source image.
@@ -255,10 +251,6 @@ var TextureSource = new Class({
                 else if (this.isGLTexture)
                 {
                     this.glTexture = this.source;
-                }
-                else if (this.compressionAlgorithm)
-                {
-                    this.glTexture = renderer.createTextureFromSource(this.source);
                 }
                 else
                 {

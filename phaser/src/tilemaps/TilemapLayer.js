@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -27,7 +27,6 @@ var TilemapLayerRender = require('./TilemapLayerRender');
  * @extends Phaser.GameObjects.Components.Depth
  * @extends Phaser.GameObjects.Components.Flip
  * @extends Phaser.GameObjects.Components.GetBounds
- * @extends Phaser.GameObjects.Components.Mask
  * @extends Phaser.GameObjects.Components.Origin
  * @extends Phaser.GameObjects.Components.Pipeline
  * @extends Phaser.GameObjects.Components.ScrollFactor
@@ -52,7 +51,6 @@ var TilemapLayer = new Class({
         Components.Depth,
         Components.Flip,
         Components.GetBounds,
-        Components.Mask,
         Components.Origin,
         Components.Pipeline,
         Components.Transform,
@@ -563,43 +561,6 @@ var TilemapLayer = new Class({
         TilemapComponents.ForEachTile(callback, context, tileX, tileY, width, height, filteringOptions, this.layer);
 
         return this;
-    },
-
-    /**
-     * Sets an additive tint on each Tile within the given area.
-     *
-     * The tint works by taking the pixel color values from the tileset texture, and then
-     * multiplying it by the color value of the tint.
-     *
-     * If no area values are given then all tiles will be tinted to the given color.
-     *
-     * To remove a tint call this method with either no parameters, or by passing white `0xffffff` as the tint color.
-     *
-     * If a tile already has a tint set then calling this method will override that.
-     *
-     * @method Phaser.Tilemaps.TilemapLayer#setTint
-     * @webglOnly
-     * @since 3.60.0
-     *
-     * @param {number} [tint=0xffffff] - The tint color being applied to each tile within the region. Given as a hex value, i.e. `0xff0000` for red. Set to white (`0xffffff`) to reset the tint.
-     * @param {number} [tileX] - The left most tile index (in tile coordinates) to use as the origin of the area to search.
-     * @param {number} [tileY] - The top most tile index (in tile coordinates) to use as the origin of the area to search.
-     * @param {number} [width] - How many tiles wide from the `tileX` index the area will be.
-     * @param {number} [height] - How many tiles tall from the `tileY` index the area will be.
-     * @param {Phaser.Types.Tilemaps.FilteringOptions} [filteringOptions] - Optional filters to apply when getting the tiles.
-     *
-     * @return {this} This Tilemap Layer object.
-     */
-    setTint: function (tint, tileX, tileY, width, height, filteringOptions)
-    {
-        if (tint === undefined) { tint = 0xffffff; }
-
-        var tintTile = function (tile)
-        {
-            tile.tint = tint;
-        };
-
-        return this.forEachTile(tintTile, this, tileX, tileY, width, height, filteringOptions);
     },
 
     /**

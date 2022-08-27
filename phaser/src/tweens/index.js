@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -18,7 +18,8 @@ var Tweens = {
 
     TweenManager: require('./TweenManager'),
     Tween: require('./tween/Tween'),
-    TweenData: require('./tween/TweenData')
+    TweenData: require('./tween/TweenData'),
+    Timeline: require('./Timeline')
 
 };
 

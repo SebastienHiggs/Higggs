@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -17,18 +17,18 @@ var GetFastValue = require('../../utils/object/GetFastValue');
  * @function Phaser.Renderer.Snapshot.WebGL
  * @since 3.0.0
  *
- * @param {WebGLRenderingContext} sourceContext - The WebGL context to take a snapshot of.
+ * @param {HTMLCanvasElement} sourceCanvas - The canvas to take a snapshot of.
  * @param {Phaser.Types.Renderer.Snapshot.SnapshotState} config - The snapshot configuration object.
  */
-var WebGLSnapshot = function (sourceContext, config)
+var WebGLSnapshot = function (sourceCanvas, config)
 {
-    var gl = sourceContext;
+    var gl = sourceCanvas.getContext('experimental-webgl');
 
     var callback = GetFastValue(config, 'callback');
     var type = GetFastValue(config, 'type', 'image/png');
     var encoderOptions = GetFastValue(config, 'encoder', 0.92);
-    var x = Math.abs(Math.round(GetFastValue(config, 'x', 0)));
-    var y = Math.abs(Math.round(GetFastValue(config, 'y', 0)));
+    var x = GetFastValue(config, 'x', 0);
+    var y = GetFastValue(config, 'y', 0);
 
     var getPixel = GetFastValue(config, 'getPixel', false);
 
@@ -49,8 +49,8 @@ var WebGLSnapshot = function (sourceContext, config)
     }
     else
     {
-        var width = Math.floor(GetFastValue(config, 'width', bufferWidth));
-        var height = Math.floor(GetFastValue(config, 'height', bufferHeight));
+        var width = GetFastValue(config, 'width', bufferWidth);
+        var height = GetFastValue(config, 'height', bufferHeight);
 
         var total = width * height * 4;
 

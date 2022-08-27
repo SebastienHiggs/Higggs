@@ -10,18 +10,18 @@ uniform bool uInvertMaskAlpha;
 void main ()
 {
     vec2 uv = gl_FragCoord.xy / uResolution;
-
     vec4 mainColor = texture2D(uMainSampler, uv);
     vec4 maskColor = texture2D(uMaskSampler, uv);
+    float alpha = mainColor.a;
 
     if (!uInvertMaskAlpha)
     {
-        mainColor *= maskColor.a;
+        alpha *= (maskColor.a);
     }
     else
     {
-        mainColor *= (1.0 - maskColor.a);
+        alpha *= (1.0 - maskColor.a);
     }
 
-    gl_FragColor = mainColor;
+    gl_FragColor = vec4(mainColor.rgb * alpha, alpha);
 }

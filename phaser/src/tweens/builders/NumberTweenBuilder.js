@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -20,7 +20,7 @@ var TweenData = require('../tween/TweenData');
  * @function Phaser.Tweens.Builders.NumberTweenBuilder
  * @since 3.0.0
  *
- * @param {Phaser.Tweens.TweenManager} parent - The owner of the new Tween.
+ * @param {(Phaser.Tweens.TweenManager|Phaser.Tweens.Timeline)} parent - The owner of the new Tween.
  * @param {Phaser.Types.Tweens.NumberTweenBuilderConfig} config - Configuration for the new Tween.
  * @param {Phaser.Types.Tweens.TweenConfigDefaults} defaults - Tween configuration defaults.
  *
@@ -87,13 +87,18 @@ var NumberTweenBuilder = function (parent, config, defaults)
 
     var tween = new Tween(parent, data, targets);
 
+    tween.offset = GetAdvancedValue(config, 'offset', null);
     tween.completeDelay = GetAdvancedValue(config, 'completeDelay', 0);
     tween.loop = Math.round(GetAdvancedValue(config, 'loop', 0));
     tween.loopDelay = Math.round(GetAdvancedValue(config, 'loopDelay', 0));
     tween.paused = GetBoolean(config, 'paused', false);
+    tween.useFrames = GetBoolean(config, 'useFrames', false);
 
     //  Set the Callbacks
     var scope = GetValue(config, 'callbackScope', tween);
+
+    //  Callback parameters: 0 = a reference to the Tween itself, 1 = the target/s of the Tween, ... your own params
+    var tweenArray = [ tween, null ];
 
     var callbacks = Tween.TYPES;
 
@@ -108,7 +113,8 @@ var NumberTweenBuilder = function (parent, config, defaults)
             var callbackScope = GetValue(config, type + 'Scope', scope);
             var callbackParams = GetValue(config, type + 'Params', []);
 
-            tween.setCallback(type, callback, callbackParams, callbackScope);
+            //  The null is reset to be the Tween target
+            tween.setCallback(type, callback, tweenArray.concat(callbackParams), callbackScope);
         }
     }
 

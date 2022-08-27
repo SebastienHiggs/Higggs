@@ -1,18 +1,16 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
 var Class = require('../../utils/Class');
 var CONST = require('./pipelines/const');
 var CustomMap = require('../../structs/Map');
-var GetFastValue = require('../../utils/object/GetFastValue');
-var RenderTarget = require('./RenderTarget');
-var SnapCeil = require('../../math/snap/SnapCeil');
 
 //  Default Phaser 3 Pipelines
 var BitmapMaskPipeline = require('./pipelines/BitmapMaskPipeline');
+var GraphicsPipeline = require('./pipelines/GraphicsPipeline');
 var LightPipeline = require('./pipelines/LightPipeline');
 var MultiPipeline = require('./pipelines/MultiPipeline');
 var PointLightPipeline = require('./pipelines/PointLightPipeline');
@@ -28,15 +26,16 @@ var UtilityPipeline = require('./pipelines/UtilityPipeline');
  * The `WebGLRenderer` owns a single instance of the Pipeline Manager, which you can access
  * via the `WebGLRenderer.pipelines` property.
  *
- * By default, there are 7 pipelines installed into the Pipeline Manager when Phaser boots:
+ * By default, there are 8 pipelines installed into the Pipeline Manager when Phaser boots:
  *
  * 1. The Multi Pipeline. Responsible for all multi-texture rendering, i.e. Sprites and Tilemaps.
- * 2. The Rope Pipeline. Responsible for rendering the Rope Game Object.
- * 3. The Light Pipeline. Responsible for rendering the Light Game Object.
- * 4. The Point Light Pipeline. Responsible for rendering the Point Light Game Object.
- * 5. The Single Pipeline. Responsible for rendering Game Objects that explicitly require one bound texture.
- * 6. The Bitmap Mask Pipeline. Responsible for Bitmap Mask rendering.
- * 7. The Utility Pipeline. Responsible for providing lots of handy texture manipulation functions.
+ * 2. The Graphics Pipeline. Responsible for rendering Graphics and Shape objects.
+ * 3. The Rope Pipeline. Responsible for rendering the Rope Game Object.
+ * 4. The Light Pipeline. Responsible for rendering the Light Game Object.
+ * 5. The Point Light Pipeline. Responsible for rendering the Point Light Game Object.
+ * 6. The Single Pipeline. Responsible for rendering Game Objects that explicitly require one bound texture.
+ * 7. The Bitmap Mask Pipeline. Responsible for Bitmap Mask rendering.
+ * 8. The Utility Pipeline. Responsible for providing lots of handy texture manipulation functions.
  *
  * You can add your own custom pipeline via the `PipelineManager.add` method. Pipelines are
  * identified by unique string-based keys.
@@ -88,7 +87,8 @@ var PipelineManager = new Class({
             [ CONST.SINGLE_PIPELINE, SinglePipeline ],
             [ CONST.ROPE_PIPELINE, RopePipeline ],
             [ CONST.LIGHT_PIPELINE, LightPipeline ],
-            [ CONST.POINTLIGHT_PIPELINE, PointLightPipeline ]
+            [ CONST.POINTLIGHT_PIPELINE, PointLightPipeline ],
+            [ CONST.GRAPHICS_PIPELINE, GraphicsPipeline ]
         ]);
 
         /**
@@ -232,45 +232,6 @@ var PipelineManager = new Class({
          * @since 3.50.0
          */
         this.halfFrame2;
-
-        /**
-         * An array of RenderTarget instances that belong to this pipeline.
-         *
-         * @name Phaser.Renderer.WebGL.PipelineManager#renderTargets
-         * @type {Phaser.Renderer.WebGL.RenderTarget[]}
-         * @since 3.60.0
-         */
-        this.renderTargets = [];
-
-        /**
-         * The largest render target dimension before we just use a full-screen target.
-         *
-         * @name Phaser.Renderer.WebGL.PipelineManager#maxDimension
-         * @type {number}
-         * @since 3.60.0
-         */
-        this.maxDimension = 0;
-
-        /**
-         * The amount in which each target frame will increase.
-         *
-         * Defaults to 64px but can be overridden in the config.
-         *
-         * @name Phaser.Renderer.WebGL.PipelineManager#frameInc
-         * @type {number}
-         * @since 3.60.0
-         */
-        this.frameInc = 32;
-
-        /**
-         * The Render Target index. Used internally by the methods
-         * in this class. Do not modify directly.
-         *
-         * @name Phaser.Renderer.WebGL.PipelineManager#targetIndex
-         * @type {number}
-         * @since 3.60.0
-         */
-        this.targetIndex = 0;
     },
 
     /**
@@ -288,39 +249,6 @@ var PipelineManager = new Class({
      */
     boot: function (pipelineConfig)
     {
-        //  Create the default RenderTextures
-        var renderer = this.renderer;
-        var targets = this.renderTargets;
-
-        this.frameInc = Math.floor(GetFastValue(pipelineConfig, 'frameInc', 32));
-
-        var renderWidth = renderer.width;
-        var renderHeight = renderer.height;
-
-        var minDimension = Math.min(renderWidth, renderHeight);
-
-        var qty = Math.ceil(minDimension / this.frameInc);
-
-        for (var i = 1; i < qty; i++)
-        {
-            var targetWidth = i * this.frameInc;
-
-            targets.push(new RenderTarget(renderer, targetWidth, targetWidth));
-
-            //  Duplicate RT for swap frame
-            targets.push(new RenderTarget(renderer, targetWidth, targetWidth));
-
-            //  Duplicate RT for alt swap frame
-            targets.push(new RenderTarget(renderer, targetWidth, targetWidth));
-        }
-
-        //  Full-screen RTs
-        targets.push(new RenderTarget(renderer, renderWidth, renderHeight, 1, 0, true, true));
-        targets.push(new RenderTarget(renderer, renderWidth, renderHeight, 1, 0, true, true));
-        targets.push(new RenderTarget(renderer, renderWidth, renderHeight, 1, 0, true, true));
-
-        this.maxDimension = (qty - 1) * this.frameInc;
-
         //  Install each of the default pipelines
 
         var instance;
@@ -383,7 +311,7 @@ var PipelineManager = new Class({
      * For example, you should pass it like this:
      *
      * ```javascript
-     * this.add('yourName', new CustomPipeline(game));`
+     * this.add('yourName', new CustomPipeline());`
      * ```
      *
      * and **not** like this:
@@ -431,7 +359,7 @@ var PipelineManager = new Class({
             pipeline.boot();
         }
 
-        if (renderer.width !== 0 && renderer.height !== 0 && !pipeline.isSpriteFX)
+        if (renderer.width !== 0 && renderer.height !== 0)
         {
             pipeline.resize(renderer.width, renderer.height);
         }
@@ -1166,69 +1094,6 @@ var PipelineManager = new Class({
         renderer.currentProgram = null;
 
         renderer.setBlendMode(0, true);
-    },
-
-    /**
-     * Gets a Render Target the right size to render the Sprite on.
-     *
-     * If the Sprite exceeds the size of the renderer, the Render Target will only ever be the maximum
-     * size of the renderer.
-     *
-     * @method Phaser.Renderer.WebGL.PipelineManager#getRenderTarget
-     * @since 3.60.0
-     *
-     * @return {Phaser.Renderer.WebGL.RenderTarget} A Render Target large enough to fit the sprite.
-     */
-    getRenderTarget: function (size)
-    {
-        var targets = this.renderTargets;
-
-        //  2 for just swap
-        //  3 for swap + alt swap
-        var offset = 3;
-
-        if (size > this.maxDimension)
-        {
-            this.targetIndex = targets.length - offset;
-
-            return targets[this.targetIndex];
-        }
-        else
-        {
-            var index = (SnapCeil(size, this.frameInc, 0, true) - 1) * offset;
-
-            this.targetIndex = index;
-
-            return targets[index];
-        }
-    },
-
-    /**
-     * Gets a matching Render Target, the same size as the one the Sprite was drawn to,
-     * useful for double-buffer style effects such as blurs.
-     *
-     * @method Phaser.Renderer.WebGL.PipelineManager#getSwapRenderTarget
-     * @since 3.60.0
-     *
-     * @return {Phaser.Renderer.WebGL.RenderTarget} The Render Target swap frame.
-     */
-    getSwapRenderTarget: function ()
-    {
-        return this.renderTargets[this.targetIndex + 1];
-    },
-
-    /**
-     * Gets a matching Render Target, the same size as the one the Sprite was drawn to,
-     * useful for double-buffer style effects such as blurs.
-     *
-     * @method Phaser.Renderer.WebGL.PipelineManager#getAltSwapRenderTarget
-     * @since 3.60.0
-     *
-     * @return {Phaser.Renderer.WebGL.RenderTarget} The Render Target swap frame.
-     */
-    getAltSwapRenderTarget: function ()
-    {
-        return this.renderTargets[this.targetIndex + 2];
     },
 
     /**

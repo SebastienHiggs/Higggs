@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -10,7 +10,7 @@ var GetFastValue = require('../../utils/object/GetFastValue');
 
 /**
  * Takes a snapshot of an area from the current frame displayed by a canvas.
- *
+ * 
  * This is then copied to an Image object. When this loads, the results are sent
  * to the callback provided in the Snapshot Configuration object.
  *
@@ -27,8 +27,8 @@ var CanvasSnapshot = function (canvas, config)
     var encoderOptions = GetFastValue(config, 'encoder', 0.92);
     var x = Math.abs(Math.round(GetFastValue(config, 'x', 0)));
     var y = Math.abs(Math.round(GetFastValue(config, 'y', 0)));
-    var width = Math.floor(GetFastValue(config, 'width', canvas.width));
-    var height = Math.floor(GetFastValue(config, 'height', canvas.height));
+    var width = GetFastValue(config, 'width', canvas.width);
+    var height = GetFastValue(config, 'height', canvas.height);
     var getPixel = GetFastValue(config, 'getPixel', false);
 
     if (getPixel)
@@ -45,13 +45,10 @@ var CanvasSnapshot = function (canvas, config)
         var copyCanvas = CanvasPool.createWebGL(this, width, height);
         var ctx = copyCanvas.getContext('2d');
 
-        if (width > 0 && height > 0)
-        {
-            ctx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
-        }
+        ctx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
 
         var image1 = new Image();
-
+    
         image1.onerror = function ()
         {
             callback.call(null);
@@ -72,7 +69,7 @@ var CanvasSnapshot = function (canvas, config)
     {
         //  Full Grab
         var image2 = new Image();
-
+    
         image2.onerror = function ()
         {
             callback.call(null);

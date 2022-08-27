@@ -1,7 +1,6 @@
-#define SHADER_NAME PHASER_MULTI_V2_FS
-#define numTextures %count%
+#define SHADER_NAME PHASER_MULTI_FS
 
-precision highp float;
+precision mediump float;
 
 uniform sampler2D uMainSampler[%count%];
 
@@ -10,13 +9,13 @@ varying float outTexId;
 varying float outTintEffect;
 varying vec4 outTint;
 
-%getSampler%
-
 void main ()
 {
-    vec4 texel = vec4(outTint.bgr * outTint.a, outTint.a);
+    vec4 texture;
 
-    vec4 texture = getSampler(int(outTexId), outTexCoord);
+    %forloop%
+
+    vec4 texel = vec4(outTint.bgr * outTint.a, outTint.a);
 
     //  Multiply texture tint
     vec4 color = texture * texel;

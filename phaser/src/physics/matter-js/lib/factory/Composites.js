@@ -16,7 +16,6 @@ var Constraint = require('../constraint/Constraint');
 var Common = require('../core/Common');
 var Body = require('../body/Body');
 var Bodies = require('./Bodies');
-var deprecated = Common.deprecated;
 
 (function() {
 
@@ -203,8 +202,7 @@ var deprecated = Common.deprecated;
     };
 
     /**
-     * This has now moved to the [newtonsCradle example](https://github.com/liabru/matter-js/blob/master/examples/newtonsCradle.js), follow that instead as this function is deprecated here.
-     * @deprecated moved to newtonsCradle example
+     * Creates a composite with a Newton's Cradle setup of bodies and constraints.
      * @method newtonsCradle
      * @param {number} xx
      * @param {number} yy
@@ -228,12 +226,9 @@ var deprecated = Common.deprecated;
 
         return newtonsCradle;
     };
-
-    deprecated(Composites, 'newtonsCradle', 'Composites.newtonsCradle ➤ moved to newtonsCradle example');
     
     /**
-     * This has now moved to the [car example](https://github.com/liabru/matter-js/blob/master/examples/car.js), follow that instead as this function is deprecated here.
-     * @deprecated moved to car example
+     * Creates a composite with simple car setup of bodies and constraints.
      * @method car
      * @param {number} xx
      * @param {number} yy
@@ -299,12 +294,8 @@ var deprecated = Common.deprecated;
         return car;
     };
 
-    deprecated(Composites, 'car', 'Composites.car ➤ moved to car example');
-
     /**
-     * This has now moved to the [softBody example](https://github.com/liabru/matter-js/blob/master/examples/softBody.js)
-     * and the [cloth example](https://github.com/liabru/matter-js/blob/master/examples/cloth.js), follow those instead as this function is deprecated here.
-     * @deprecated moved to softBody and cloth examples
+     * Creates a simple soft body like object.
      * @method softBody
      * @param {number} xx
      * @param {number} yy
@@ -333,5 +324,4 @@ var deprecated = Common.deprecated;
         return softBody;
     };
 
-    deprecated(Composites, 'softBody', 'Composites.softBody ➤ moved to softBody and cloth examples');
 })();

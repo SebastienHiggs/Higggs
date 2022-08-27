@@ -1,7 +1,7 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
  * @author       Benjamin D. Richards <benjamindrichards@gmail.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -25,7 +25,7 @@ var Vector2 = require('../../math/Vector2');
  * @since 3.0.0
  *
  * @param {Phaser.Physics.Arcade.World} world - The Arcade Physics simulation this Body belongs to.
- * @param {Phaser.GameObjects.GameObject} [gameObject] - The Game Object this Body belongs to. As of Phaser 3.60 this is now optional.
+ * @param {Phaser.GameObjects.GameObject} gameObject - The Game Object this Body belongs to.
  */
 var Body = new Class({
 
@@ -33,32 +33,8 @@ var Body = new Class({
 
     function Body (world, gameObject)
     {
-        var width = 64;
-        var height = 64;
-
-        var dummyGameObject = {
-            x: 0,
-            y: 0,
-            angle: 0,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
-            displayOriginX: 0,
-            displayOriginY: 0
-        };
-
-        var hasGameObject = (gameObject !== undefined);
-
-        if (hasGameObject && gameObject.displayWidth)
-        {
-            width = gameObject.displayWidth;
-            height = gameObject.displayHeight;
-        }
-
-        if (!hasGameObject)
-        {
-            gameObject = dummyGameObject;
-        }
+        var width = (gameObject.displayWidth) ? gameObject.displayWidth : 64;
+        var height = (gameObject.displayHeight) ? gameObject.displayHeight : 64;
 
         /**
          * The Arcade Physics simulation this Body belongs to.
@@ -72,23 +48,11 @@ var Body = new Class({
         /**
          * The Game Object this Body belongs to.
          *
-         * As of Phaser 3.60 this is now optional and can be undefined.
-         *
          * @name Phaser.Physics.Arcade.Body#gameObject
          * @type {Phaser.GameObjects.GameObject}
          * @since 3.0.0
          */
-        this.gameObject = (hasGameObject) ? gameObject : undefined;
-
-        /**
-         * A quick-test flag that signifies this is a Body, used in the World collision handler.
-         *
-         * @name Phaser.Physics.Arcade.Body#isBody
-         * @type {boolean}
-         * @readonly
-         * @since 3.60.0
-         */
-        this.isBody = true;
+        this.gameObject = gameObject;
 
         /**
          * Transformations applied to this Body.
@@ -1060,10 +1024,7 @@ var Body = new Class({
             this.resetFlags();
         }
 
-        if (this.gameObject)
-        {
-            this.updateFromGameObject();
-        }
+        this.updateFromGameObject();
 
         this.rotation = this.transform.rotation;
         this.preRotation = this.rotation;
@@ -1141,7 +1102,6 @@ var Body = new Class({
     {
         var dx = this.position.x - this.prevFrame.x;
         var dy = this.position.y - this.prevFrame.y;
-        var gameObject = this.gameObject;
 
         if (this.moves)
         {
@@ -1172,11 +1132,8 @@ var Body = new Class({
                 }
             }
 
-            if (gameObject)
-            {
-                gameObject.x += dx;
-                gameObject.y += dy;
-            }
+            this.gameObject.x += dx;
+            this.gameObject.y += dy;
         }
 
         if (dx < 0)
@@ -1197,9 +1154,9 @@ var Body = new Class({
             this.facing = CONST.FACING_DOWN;
         }
 
-        if (this.allowRotation && gameObject)
+        if (this.allowRotation)
         {
-            gameObject.angle += this.deltaZ();
+            this.gameObject.angle += this.deltaZ();
         }
 
         this._tx = dx;
@@ -1304,53 +1261,6 @@ var Body = new Class({
     },
 
     /**
-     * Assign this Body to a new Game Object.
-     *
-     * Removes this body from the Physics World, assigns to the new Game Object, calls `setSize` and then
-     * adds this body back into the World again, setting it enabled, unless the `enable` argument is set to `false`.
-     *
-     * If this body already has a Game Object, then it will remove itself from that Game Object first.
-     *
-     * Only if the given `gameObject` has a `body` property will this Body be assigned to it.
-     *
-     * @method Phaser.Physics.Arcade.Body#setGameObject
-     * @since 3.60.0
-     *
-     * @param {Phaser.GameObjects.GameObject} gameObject - The Game Object this Body belongs to.
-     * @param {boolean} [enable=true] - Automatically enable this Body for physics.
-     *
-     * @return {Phaser.Physics.Arcade.Body} This Body object.
-     */
-    setGameObject: function (gameObject, enable)
-    {
-        if (enable === undefined) { enable = true; }
-
-        //  Remove from the World
-        this.world.remove(this);
-
-        if (this.gameObject && this.gameObject.body)
-        {
-            //  Disconnect the current Game Object
-            this.gameObject.body = null;
-        }
-
-        this.gameObject = gameObject;
-
-        if (gameObject.body)
-        {
-            gameObject.body = this;
-        }
-
-        this.setSize();
-
-        this.world.add(this);
-
-        this.enable = enable;
-
-        return this;
-    },
-
-    /**
      * Sizes and positions this Body, as a rectangle.
      * Modifies the Body `offset` if `center` is true (the default).
      * Resets the width and height to match current frame, if no width and height provided and a frame is found.
@@ -1370,17 +1280,14 @@ var Body = new Class({
 
         var gameObject = this.gameObject;
 
-        if (gameObject)
+        if (!width && gameObject.frame)
         {
-            if (!width && gameObject.frame)
-            {
-                width = gameObject.frame.realWidth;
-            }
+            width = gameObject.frame.realWidth;
+        }
 
-            if (!height && gameObject.frame)
-            {
-                height = gameObject.frame.realHeight;
-            }
+        if (!height && gameObject.frame)
+        {
+            height = gameObject.frame.realHeight;
         }
 
         this.sourceWidth = width;
@@ -1394,7 +1301,7 @@ var Body = new Class({
 
         this.updateCenter();
 
-        if (center && gameObject && gameObject.getCenter)
+        if (center && gameObject.getCenter)
         {
             var ox = (gameObject.width - width) / 2;
             var oy = (gameObject.height - height) / 2;
@@ -1467,35 +1374,25 @@ var Body = new Class({
 
         var gameObject = this.gameObject;
 
-        if (gameObject)
+        gameObject.setPosition(x, y);
+
+        if (gameObject.getTopLeft)
         {
-            gameObject.setPosition(x, y);
-
-            this.rotation = gameObject.angle;
-            this.preRotation = gameObject.angle;
-        }
-
-        var pos = this.position;
-
-        if (gameObject && gameObject.getTopLeft)
-        {
-            gameObject.getTopLeft(pos);
+            gameObject.getTopLeft(this.position);
         }
         else
         {
-            pos.set(x, y);
+            this.position.set(x, y);
         }
 
-        this.prev.copy(pos);
-        this.prevFrame.copy(pos);
+        this.prev.copy(this.position);
+        this.prevFrame.copy(this.position);
 
-        if (gameObject)
-        {
-            this.updateBounds();
-        }
+        this.rotation = gameObject.angle;
+        this.preRotation = gameObject.angle;
 
+        this.updateBounds();
         this.updateCenter();
-        this.checkWorldBounds();
         this.resetFlags(true);
     },
 
@@ -1859,16 +1756,6 @@ var Body = new Class({
         return this;
     },
 
-    setValue: function (vec2, x, y)
-    {
-        if (x === undefined) { x = vec2.x; }
-        if (y === undefined) { y = vec2.y; }
-
-        vec2.set(x, y);
-
-        return this;
-    },
-
     /**
      * Sets the Body's velocity.
      *
@@ -1904,7 +1791,14 @@ var Body = new Class({
      */
     setVelocityX: function (value)
     {
-        return this.setVelocity(value, this.velocity.y);
+        this.velocity.x = value;
+
+        var x = value;
+        var y = this.velocity.y;
+
+        this.speed = Math.sqrt(x * x + y * y);
+
+        return this;
     },
 
     /**
@@ -1919,7 +1813,14 @@ var Body = new Class({
      */
     setVelocityY: function (value)
     {
-        return this.setVelocity(this.velocity.x, value);
+        this.velocity.y = value;
+
+        var x = this.velocity.x;
+        var y = value;
+
+        this.speed = Math.sqrt(x * x + y * y);
+
+        return this;
     },
 
     /**
@@ -1998,7 +1899,7 @@ var Body = new Class({
      * @since 3.0.0
      *
      * @param {number} x - The horizontal bounce, relative to 1.
-     * @param {number} [y=x] - The vertical bounce, relative to 1.
+     * @param {number} y - The vertical bounce, relative to 1.
      *
      * @return {Phaser.Physics.Arcade.Body} This Body object.
      */
@@ -2050,7 +1951,7 @@ var Body = new Class({
      * @since 3.0.0
      *
      * @param {number} x - The horizontal component, in pixels per second squared.
-     * @param {number} [y=x] - The vertical component, in pixels per second squared.
+     * @param {number} y - The vertical component, in pixels per second squared.
      *
      * @return {Phaser.Physics.Arcade.Body} This Body object.
      */
@@ -2162,7 +2063,7 @@ var Body = new Class({
      * @since 3.0.0
      *
      * @param {number} x - The horizontal component, in pixels per second squared.
-     * @param {number} [y=x] - The vertical component, in pixels per second squared.
+     * @param {number} y - The vertical component, in pixels per second squared.
      *
      * @return {Phaser.Physics.Arcade.Body} This Body object.
      */
@@ -2239,7 +2140,7 @@ var Body = new Class({
      * @since 3.0.0
      *
      * @param {number} x - The horizontal component, in pixels per second squared.
-     * @param {number} [y=x] - The vertical component, in pixels per second squared.
+     * @param {number} y - The vertical component, in pixels per second squared.
      *
      * @return {Phaser.Physics.Arcade.Body} This Body object.
      */
@@ -2291,7 +2192,7 @@ var Body = new Class({
      * @since 3.0.0
      *
      * @param {number} x - The horizontal component, relative to 1.
-     * @param {number} [y=x] - The vertical component, relative to 1.
+     * @param {number} y - The vertical component, relative to 1.
      *
      * @return {Phaser.Physics.Arcade.Body} This Body object.
      */

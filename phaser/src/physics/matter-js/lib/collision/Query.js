@@ -11,7 +11,7 @@ var Query = {};
 module.exports = Query;
 
 var Vector = require('../geometry/Vector');
-var Collision = require('./Collision');
+var SAT = require('./SAT');
 var Bounds = require('../geometry/Bounds');
 var Bodies = require('../factory/Bodies');
 var Vertices = require('../geometry/Vertices');
@@ -23,34 +23,28 @@ var Vertices = require('../geometry/Vertices');
      * @method collides
      * @param {body} body
      * @param {body[]} bodies
-     * @return {collision[]} Collisions
+     * @return {object[]} Collisions
      */
     Query.collides = function(body, bodies) {
-        var collisions = [],
-            bodiesLength = bodies.length,
-            bounds = body.bounds,
-            collides = Collision.collides,
-            overlaps = Bounds.overlaps;
+        var collisions = [];
 
-        for (var i = 0; i < bodiesLength; i++) {
-            var bodyA = bodies[i],
-                partsALength = bodyA.parts.length,
-                partsAStart = partsALength === 1 ? 0 : 1;
+        for (var i = 0; i < bodies.length; i++) {
+            var bodyA = bodies[i];
 
             //  Phaser addition - skip same body checks
             if (body === bodyA)
             {
                 continue;
             }
-
-            if (overlaps(bodyA.bounds, bounds)) {
-                for (var j = partsAStart; j < partsALength; j++) {
+            
+            if (Bounds.overlaps(bodyA.bounds, body.bounds)) {
+                for (var j = bodyA.parts.length === 1 ? 0 : 1; j < bodyA.parts.length; j++) {
                     var part = bodyA.parts[j];
 
-                    if (overlaps(part.bounds, bounds)) {
-                        var collision = collides(part, body);
+                    if (Bounds.overlaps(part.bounds, body.bounds)) {
+                        var collision = SAT.collides(part, body);
 
-                        if (collision) {
+                        if (collision.collided) {
                             collisions.push(collision);
                             break;
                         }
@@ -69,7 +63,7 @@ var Vertices = require('../geometry/Vertices');
      * @param {vector} startPoint
      * @param {vector} endPoint
      * @param {number} [rayWidth]
-     * @return {collision[]} Collisions
+     * @return {object[]} Collisions
      */
     Query.ray = function(bodies, startPoint, endPoint, rayWidth) {
         rayWidth = rayWidth || 1e-100;
@@ -83,7 +77,7 @@ var Vertices = require('../geometry/Vertices');
 
         for (var i = 0; i < collisions.length; i += 1) {
             var collision = collisions[i];
-            collision.body = collision.bodyB = collision.bodyA;
+            collision.body = collision.bodyB = collision.bodyA;            
         }
 
         return collisions;
@@ -122,7 +116,7 @@ var Vertices = require('../geometry/Vertices');
 
         for (var i = 0; i < bodies.length; i++) {
             var body = bodies[i];
-
+            
             if (Bounds.contains(body.bounds, point)) {
                 for (var j = body.parts.length === 1 ? 0 : 1; j < body.parts.length; j++) {
                     var part = body.parts[j];

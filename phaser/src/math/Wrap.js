@@ -1,11 +1,11 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
 /**
- * Wrap the given `value` between `min` and `max`.
+ * Wrap the given `value` between `min` and `max.
  *
  * @function Phaser.Math.Wrap
  * @since 3.0.0

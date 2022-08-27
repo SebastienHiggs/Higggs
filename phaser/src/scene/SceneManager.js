@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -485,12 +485,20 @@ var SceneManager = new Class({
         {
             scene.preload.call(scene);
 
-            settings.status = CONST.LOADING;
+            //  Is the loader empty?
+            if (loader.list.size === 0)
+            {
+                this.create(scene);
+            }
+            else
+            {
+                settings.status = CONST.LOADING;
 
-            //  Start the loader going as we have something in the queue
-            loader.once(LoaderEvents.COMPLETE, this.loadComplete, this);
+                //  Start the loader going as we have something in the queue
+                loader.once(LoaderEvents.COMPLETE, this.loadComplete, this);
 
-            loader.start();
+                loader.start();
+            }
         }
         else
         {
@@ -512,13 +520,6 @@ var SceneManager = new Class({
      */
     loadComplete: function (loader)
     {
-        //  TODO - Remove. This should *not* be handled here
-        //  Try to unlock HTML5 sounds every time any loader completes
-        if (this.game.sound && this.game.sound.onBlurPausedSounds)
-        {
-            this.game.sound.unlock();
-        }
-
         this.create(loader.scene);
     },
 
@@ -1125,9 +1126,7 @@ var SceneManager = new Class({
     },
 
     /**
-     * Starts the given Scene, if it is not starting, loading, or creating.
-     *
-     * If the Scene is running, paused, or sleeping, it will be shutdown and then started.
+     * Starts the given Scene.
      *
      * @method Phaser.Scenes.SceneManager#start
      * @since 3.0.0
@@ -1152,67 +1151,53 @@ var SceneManager = new Class({
 
         var scene = this.getScene(key);
 
-        if (!scene)
+        if (scene)
         {
-            console.warn('Scene not found for key: ' + key);
-            return this;
-        }
+            var sys = scene.sys;
 
-        var sys = scene.sys;
-        var status = sys.settings.status;
-
-        //  If the scene is already started but not yet running,
-        //  let it continue.
-        if (status >= CONST.START && status <= CONST.CREATING)
-        {
-            return this;
-        }
-
-        //  If the Scene is already running, paused, or sleeping,
-        //  close it down before starting it again.
-        else if (status >= CONST.RUNNING && status <= CONST.SLEEPING)
-        {
-            sys.shutdown();
-
-            sys.sceneUpdate = NOOP;
-
-            sys.start(data);
-        }
-
-        //  If the Scene is INIT or SHUTDOWN,
-        //  start it directly.
-        else
-        {
-            sys.sceneUpdate = NOOP;
-
-            sys.start(data);
-
-            var loader;
-
-            if (sys.load)
+            //  If the Scene is already running (perhaps they called start from a launched sub-Scene?)
+            //  then we close it down before starting it again.
+            if (sys.isActive() || sys.isPaused())
             {
-                loader = sys.load;
+                sys.shutdown();
+
+                sys.sceneUpdate = NOOP;
+
+                sys.start(data);
             }
-
-            //  Files payload?
-            if (loader && sys.settings.hasOwnProperty('pack'))
+            else
             {
-                loader.reset();
+                sys.sceneUpdate = NOOP;
 
-                if (loader.addPack({ payload: sys.settings.pack }))
+                sys.start(data);
+
+                var loader;
+
+                if (sys.load)
                 {
-                    sys.settings.status = CONST.LOADING;
+                    loader = sys.load;
+                }
 
-                    loader.once(LoaderEvents.COMPLETE, this.payloadComplete, this);
+                //  Files payload?
+                if (loader && sys.settings.hasOwnProperty('pack'))
+                {
+                    loader.reset();
 
-                    loader.start();
+                    if (loader.addPack({ payload: sys.settings.pack }))
+                    {
+                        sys.settings.status = CONST.LOADING;
 
-                    return this;
+                        loader.once(LoaderEvents.COMPLETE, this.payloadComplete, this);
+
+                        loader.start();
+
+                        return this;
+                    }
                 }
             }
-        }
 
-        this.bootScene(scene);
+            this.bootScene(scene);
+        }
 
         return this;
     },
@@ -1232,13 +1217,8 @@ var SceneManager = new Class({
     {
         var scene = this.getScene(key);
 
-        if (scene && !scene.sys.isTransitioning() && scene.sys.settings.status !== CONST.SHUTDOWN)
+        if (scene && !scene.sys.isTransitioning())
         {
-            var loader = scene.sys.load;
-
-            loader.off(LoaderEvents.COMPLETE, this.loadComplete, this);
-            loader.off(LoaderEvents.COMPLETE, this.payloadComplete, this);
-
             scene.sys.shutdown(data);
         }
 
@@ -1475,7 +1455,7 @@ var SceneManager = new Class({
             var indexA = this.getIndex(keyA);
             var indexB = this.getIndex(keyB);
 
-            if (indexA !== -1 && indexB !== -1 && indexB < indexA)
+            if (indexA !== -1 && indexB !== -1)
             {
                 var tempScene = this.getAt(indexB);
 
@@ -1483,7 +1463,7 @@ var SceneManager = new Class({
                 this.scenes.splice(indexB, 1);
 
                 //  Add in new location
-                this.scenes.splice(indexA + (indexB > indexA), 0, tempScene);
+                this.scenes.splice(indexA + 1, 0, tempScene);
             }
         }
 
@@ -1498,7 +1478,7 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#moveBelow
      * @since 3.2.0
      *
-     * @param {(string|Phaser.Scene)} keyA - The Scene that Scene B will be moved below.
+     * @param {(string|Phaser.Scene)} keyA - The Scene that Scene B will be moved above.
      * @param {(string|Phaser.Scene)} keyB - The Scene to be moved.
      *
      * @return {this} This Scene Manager instance.
@@ -1519,7 +1499,7 @@ var SceneManager = new Class({
             var indexA = this.getIndex(keyA);
             var indexB = this.getIndex(keyB);
 
-            if (indexA !== -1 && indexB !== -1 && indexB > indexA)
+            if (indexA !== -1 && indexB !== -1)
             {
                 var tempScene = this.getAt(indexB);
 
@@ -1533,7 +1513,7 @@ var SceneManager = new Class({
                 else
                 {
                     //  Add in new location
-                    this.scenes.splice(indexA - (indexB < indexA), 0, tempScene);
+                    this.scenes.splice(indexA, 0, tempScene);
                 }
             }
         }

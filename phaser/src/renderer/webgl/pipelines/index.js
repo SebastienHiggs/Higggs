@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -15,13 +15,13 @@ var Pipelines = {
 
     BitmapMaskPipeline: require('./BitmapMaskPipeline'),
     Events: require('./events'),
+    GraphicsPipeline: require('./GraphicsPipeline'),
     LightPipeline: require('./LightPipeline'),
     MultiPipeline: require('./MultiPipeline'),
     PointLightPipeline: require('./PointLightPipeline'),
     PostFXPipeline: require('./PostFXPipeline'),
     RopePipeline: require('./RopePipeline'),
     SinglePipeline: require('./SinglePipeline'),
-    SpriteFXPipeline: require('./SpriteFXPipeline'),
     UtilityPipeline: require('./UtilityPipeline')
 
 };

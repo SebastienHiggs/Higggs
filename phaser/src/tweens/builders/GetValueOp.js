@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -38,7 +38,7 @@ function hasGetters (def)
 
 /**
  * Returns `getActive`, `getStart` and `getEnd` functions for a TweenData based on a target property and end value.
- *
+ * 
  * `getActive` if not null, is invoked _immediately_ as soon as the TweenData is running, and is set on the target property.
  * `getEnd` is invoked once any start delays have expired and returns what the value should tween to.
  * `getStart` is invoked when the tween reaches the end and needs to either repeat or yoyo, it returns the value to go back to.
@@ -47,11 +47,11 @@ function hasGetters (def)
  * A string can be provided to specify a relative end value which consists of an operation
  * (`+=` to add to the current value, `-=` to subtract from the current value, `*=` to multiply the current
  * value, or `/=` to divide the current value) followed by its operand.
- *
+ * 
  * A function can be provided to allow greater control over the end value; it will receive the target
  * object being tweened, the name of the property being tweened, and the current value of the property
- * as its arguments and must return a value.
- *
+ * as its arguments.
+ * 
  * If both the starting and the ending values need to be controlled, an object with `getStart` and `getEnd`
  * callbacks, which will receive the same arguments, can be provided instead. If an object with a `value`
  * property is provided, the property will be used as the effective value under the same rules described here.
@@ -89,23 +89,6 @@ var GetValueOp = function (key, propertyValue)
         getEnd = function ()
         {
             return propertyValue;
-        };
-    }
-    else if (Array.isArray(propertyValue))
-    {
-        // props: {
-        //     x: [ 400, 300, 200 ],
-        //     y: [ 10, 500, 10 ]
-        // }
-
-        getStart = function ()
-        {
-            return propertyValue[0];
-        };
-
-        getEnd = function ()
-        {
-            return propertyValue[propertyValue.length - 1];
         };
     }
     else if (t === 'string')
@@ -162,7 +145,7 @@ var GetValueOp = function (key, propertyValue)
         //  The same as setting just the getEnd function and no getStart
 
         // props: {
-        //     x: function (target, key, value, targetIndex, totalTargets, tween, tweenData) { return value + 50); },
+        //     x: function (target, key, value, targetIndex, totalTargets, tween) { return value + 50); },
         // }
 
         getEnd = propertyValue;
@@ -174,19 +157,19 @@ var GetValueOp = function (key, propertyValue)
             /*
             x: {
                 //  Called the moment Tween is active. The returned value sets the property on the target immediately.
-                getActive: function (target, key, value, targetIndex, totalTargets, tween, tweenData)
+                getActive: function (target, key, value, targetIndex, totalTargets, tween)
                 {
                     return value;
                 },
 
                 //  Called at the start of the Tween. The returned value sets what the property will be at the END of the Tween.
-                getEnd: function (target, key, value, targetIndex, totalTargets, tween, tweenData)
+                getEnd: function (target, key, value, targetIndex, totalTargets, tween)
                 {
                     return value;
                 },
 
                 //  Called at the end of the Tween. The returned value sets what the property will be at the START of the Tween.
-                getStart: function (target, key, value, targetIndex, totalTargets, tween, tweenData)
+                getStart: function (target, key, value, targetIndex, totalTargets, tween)
                 {
                     return value;
                 }
@@ -249,14 +232,14 @@ var GetValueOp = function (key, propertyValue)
                 if (hasStart)
                 {
                     var startCallbacks = GetValueOp(key, propertyValue.start);
-
+        
                     callbacks.getActive = startCallbacks.getEnd;
                 }
-
+        
                 if (hasFrom)
                 {
                     var fromCallbacks = GetValueOp(key, propertyValue.from);
-
+        
                     callbacks.getStart = fromCallbacks.getEnd;
                 }
             }

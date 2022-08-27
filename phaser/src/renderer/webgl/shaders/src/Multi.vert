@@ -1,6 +1,6 @@
 #define SHADER_NAME PHASER_MULTI_VS
 
-precision highp float;
+precision mediump float;
 
 uniform mat4 uProjectionMatrix;
 

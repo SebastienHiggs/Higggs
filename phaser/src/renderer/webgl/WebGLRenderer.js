@@ -1,7 +1,7 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
  * @author       Felipe Alfonso <@bitnenfer>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -67,8 +67,7 @@ var WebGLRenderer = new Class({
             stencil: true,
             failIfMajorPerformanceCaveat: gameConfig.failIfMajorPerformanceCaveat,
             powerPreference: gameConfig.powerPreference,
-            preserveDrawingBuffer: gameConfig.preserveDrawingBuffer,
-            willReadFrequently: false
+            preserveDrawingBuffer: gameConfig.preserveDrawingBuffer
         };
 
         /**
@@ -419,15 +418,17 @@ var WebGLRenderer = new Class({
         this.glFormats = [];
 
         /**
-         * Stores the WebGL texture compression formats that this device and browser supports.
-         *
-         * Support for using compressed texture formats was added in Phaser version 3.60.
+         * Stores the supported WebGL texture compression formats.
          *
          * @name Phaser.Renderer.WebGL.WebGLRenderer#compression
          * @type {Phaser.Types.Renderer.WebGL.WebGLTextureCompression}
          * @since 3.8.0
          */
-        this.compression;
+        this.compression = {
+            ETC1: false,
+            PVRTC: false,
+            S3TC: false
+        };
 
         /**
          * Cached drawing buffer height to reduce gl calls.
@@ -551,7 +552,7 @@ var WebGLRenderer = new Class({
          *
          * You can specify this as a string in the game config, i.e.:
          *
-         * `render: { mipmapFilter: 'NEAREST_MIPMAP_LINEAR' }`
+         * `renderer: { mipmapFilter: 'NEAREST_MIPMAP_LINEAR' }`
          *
          * The 6 options for WebGL1 are, in order from least to most computationally expensive:
          *
@@ -779,7 +780,12 @@ var WebGLRenderer = new Class({
             config.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
         }
 
-        this.compression = this.getCompressedTextures();
+        var extString = 'WEBGL_compressed_texture_';
+        var wkExtString = 'WEBKIT_' + extString;
+
+        this.compression.ETC1 = gl.getExtension(extString + 'etc1') || gl.getExtension(wkExtString + 'etc1');
+        this.compression.PVRTC = gl.getExtension(extString + 'pvrtc') || gl.getExtension(wkExtString + 'pvrtc');
+        this.compression.S3TC = gl.getExtension(extString + 's3tc') || gl.getExtension(wkExtString + 's3tc');
 
         this.supportedExtensions = exts;
 
@@ -991,106 +997,6 @@ var WebGLRenderer = new Class({
         this.emit(Events.RESIZE, width, height);
 
         return this;
-    },
-
-    /**
-     * Determines which compressed texture formats this browser and device supports.
-     *
-     * Called automatically as part of the WebGL Renderer init process. If you need to investigate
-     * which formats it supports, see the `Phaser.Renderer.WebGL.WebGLRenderer#compression` property instead.
-     *
-     * @method Phaser.Renderer.WebGL.WebGLRenderer#getCompressedTextures
-     * @since 3.60.0
-     *
-     * @return {Phaser.Types.Renderer.WebGL.WebGLTextureCompression} The compression object.
-     */
-    getCompressedTextures: function ()
-    {
-        var extString = 'WEBGL_compressed_texture_';
-        var wkExtString = 'WEBKIT_' + extString;
-
-        var hasExt = function (gl, format)
-        {
-            var results = gl.getExtension(extString + format) || gl.getExtension(wkExtString + format);
-
-            if (results)
-            {
-                var glEnums = {};
-
-                for (var key in results)
-                {
-                    glEnums[results[key]] = key;
-                }
-
-                return glEnums;
-            }
-        };
-
-        var gl = this.gl;
-
-        return {
-            ETC: hasExt(gl, 'etc'),
-            ETC1: hasExt(gl, 'etc1'),
-            ATC: hasExt(gl, 'atc'),
-            ASTC: hasExt(gl, 'astc'),
-            BPTC: hasExt(gl, 'bptc'),
-            RGTC: hasExt(gl, 'rgtc'),
-            PVRTC: hasExt(gl, 'pvrtc'),
-            S3TC: hasExt(gl, 's3tc'),
-            S3TCSRGB: hasExt(gl, 's3tc_srgb'),
-            IMG: true
-        };
-    },
-
-    /**
-     * Returns a compressed texture format GLenum name based on the given format.
-     *
-     * @method Phaser.Renderer.WebGL.WebGLRenderer#getCompressedTextureName
-     * @since 3.60.0
-     *
-     * @param {string} baseFormat - The Base Format to check.
-     * @param {GLenum} [format] - An optional GLenum format to check within the base format.
-     *
-     * @return {string} The compressed texture format name, as a string.
-     */
-    getCompressedTextureName: function (baseFormat, format)
-    {
-        var supportedFormats = this.compression[baseFormat.toUpperCase()];
-
-        if (format in supportedFormats)
-        {
-            return supportedFormats[format];
-        }
-    },
-
-    /**
-     * Checks if the given compressed texture format is supported, or not.
-     *
-     * @method Phaser.Renderer.WebGL.WebGLRenderer#supportsCompressedTexture
-     * @since 3.60.0
-     *
-     * @param {string} baseFormat - The Base Format to check.
-     * @param {GLenum} [format] - An optional GLenum format to check within the base format.
-     *
-     * @return {boolean} True if the format is supported, otherwise false.
-     */
-    supportsCompressedTexture: function (baseFormat, format)
-    {
-        var supportedFormats = this.compression[baseFormat.toUpperCase()];
-
-        if (supportedFormats)
-        {
-            if (format)
-            {
-                return format in supportedFormats;
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-        return false;
     },
 
     /**
@@ -1580,7 +1486,6 @@ var WebGLRenderer = new Class({
             gl.bindTexture(gl.TEXTURE_2D, texture);
 
             this.textureZero = texture;
-            this.isTextureClean = false;
         }
     },
 
@@ -1983,14 +1888,11 @@ var WebGLRenderer = new Class({
      * @param {number} width - The width of the texture.
      * @param {number} height - The height of the texture.
      * @param {number} scaleMode - The scale mode to be used by the texture.
-     * @param {boolean} [forceClamp=false] - Force the texture to use the CLAMP_TO_EDGE wrap mode, even if a power of two?
      *
      * @return {?WebGLTexture} The WebGL Texture that was created, or `null` if it couldn't be created.
      */
-    createTextureFromSource: function (source, width, height, scaleMode, forceClamp)
+    createTextureFromSource: function (source, width, height, scaleMode)
     {
-        if (forceClamp === undefined) { forceClamp = false; }
-
         var gl = this.gl;
         var minFilter = gl.NEAREST;
         var magFilter = gl.NEAREST;
@@ -2002,7 +1904,7 @@ var WebGLRenderer = new Class({
 
         var pow = IsSizePowerOfTwo(width, height);
 
-        if (pow && !forceClamp)
+        if (pow)
         {
             wrap = gl.REPEAT;
         }
@@ -2010,13 +1912,6 @@ var WebGLRenderer = new Class({
         if (scaleMode === CONST.ScaleModes.LINEAR && this.config.antialias)
         {
             minFilter = (pow) ? this.mipmapFilter : gl.LINEAR;
-            magFilter = gl.LINEAR;
-        }
-
-        if (source && source.compressed)
-        {
-            //  If you don't set minFilter to LINEAR then the compressed textures don't work!
-            minFilter = gl.LINEAR;
             magFilter = gl.LINEAR;
         }
 
@@ -2074,30 +1969,11 @@ var WebGLRenderer = new Class({
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
 
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, pma);
-
-        if (flipY)
-        {
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        }
-
-        var generateMipmap = false;
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flipY);
 
         if (pixels === null || pixels === undefined)
         {
             gl.texImage2D(gl.TEXTURE_2D, mipLevel, format, width, height, 0, format, gl.UNSIGNED_BYTE, null);
-
-            generateMipmap = IsSizePowerOfTwo(width, height);
-        }
-        else if (pixels.compressed)
-        {
-            width = pixels.width;
-            height = pixels.height;
-            generateMipmap = pixels.generateMipmap;
-
-            for (var i = 0; i < pixels.mipmaps.length; i++)
-            {
-                gl.compressedTexImage2D(gl.TEXTURE_2D, i, pixels.internalFormat, pixels.mipmaps[i].width, pixels.mipmaps[i].height, 0, pixels.mipmaps[i].data);
-            }
         }
         else
         {
@@ -2108,11 +1984,9 @@ var WebGLRenderer = new Class({
             }
 
             gl.texImage2D(gl.TEXTURE_2D, mipLevel, format, format, gl.UNSIGNED_BYTE, pixels);
-
-            generateMipmap = IsSizePowerOfTwo(width, height);
         }
 
-        if (generateMipmap)
+        if (IsSizePowerOfTwo(width, height))
         {
             gl.generateMipmap(gl.TEXTURE_2D);
         }
@@ -2656,7 +2530,7 @@ var WebGLRenderer = new Class({
 
         if (state.callback)
         {
-            WebGLSnapshot(this.gl, state);
+            WebGLSnapshot(this.canvas, state);
 
             state.callback = null;
         }
@@ -2816,7 +2690,7 @@ var WebGLRenderer = new Class({
 
         this.setFramebuffer(framebuffer);
 
-        WebGLSnapshot(this.gl, state);
+        WebGLSnapshot(this.canvas, state);
 
         this.setFramebuffer(currentFramebuffer);
 
@@ -2925,11 +2799,7 @@ var WebGLRenderer = new Class({
             var currentTexture = gl.getParameter(gl.TEXTURE_BINDING_2D);
             gl.bindTexture(gl.TEXTURE_2D, dstTexture);
 
-            if (flipY)
-            {
-                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-            }
-
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flipY);
             gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcCanvas);

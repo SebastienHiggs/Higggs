@@ -1,6 +1,6 @@
 /**
  * @author       samme
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -25,6 +25,6 @@
  * @since 3.24.0
  *
  * @param {Phaser.Tweens.Tween} tween - A reference to the Tween instance that emitted the event.
- * @param {(any|any[])} targets - The targets of the Tween. If this Tween has multiple targets this will be an array of the targets.
+ * @param {any[]} targets - An array of references to the target/s the Tween is operating on.
  */
 module.exports = 'stop';

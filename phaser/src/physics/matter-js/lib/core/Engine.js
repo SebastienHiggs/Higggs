@@ -12,10 +12,12 @@ var Engine = {};
 
 module.exports = Engine;
 
+var World = require('../body/World');
 var Sleeping = require('./Sleeping');
 var Resolver = require('../collision/Resolver');
-var Detector = require('../collision/Detector');
 var Pairs = require('../collision/Pairs');
+var Metrics = require('./Metrics');
+var Grid = require('../collision/Grid');
 var Events = require('./Events');
 var Composite = require('../body/Composite');
 var Constraint = require('../constraint/Constraint');
@@ -32,8 +34,15 @@ var Body = require('../body/Body');
      * @param {object} [options]
      * @return {engine} engine
      */
-    Engine.create = function(options) {
+    Engine.create = function(element, options) {
+        // options may be passed as the first (and only) argument
+        options = Common.isElement(element) ? options : element;
+        element = Common.isElement(element) ? element : null;
         options = options || {};
+
+        if (element || options.render) {
+            Common.warn('Engine.create: engine.render is deprecated (see docs)');
+        }
 
         var defaults = {
             positionIterations: 6,
@@ -42,31 +51,26 @@ var Body = require('../body/Body');
             enableSleeping: false,
             events: [],
             plugin: {},
-            gravity: {
-                x: 0,
-                y: 1,
-                scale: 0.001
-            },
             timing: {
                 timestamp: 0,
-                timeScale: 1,
-                lastDelta: 0,
-                lastElapsed: 0
+                timeScale: 1
+            },
+            broadphase: {
+                controller: Grid
             }
         };
 
         var engine = Common.extend(defaults, options);
 
-        engine.world = options.world || Composite.create({ label: 'World' });
-        engine.pairs = options.pairs || Pairs.create();
-        engine.detector = options.detector || Detector.create();
+        engine.world = options.world || World.create(engine.world);
+        engine.pairs = Pairs.create();
+        engine.broadphase = engine.broadphase.controller.create(engine.broadphase);
+        engine.metrics = engine.metrics || { extended: false };
 
-        // for temporary back compatibility only
-        engine.grid = { buckets: [] };
-        engine.world.gravity = engine.gravity;
-        engine.broadphase = engine.grid;
-        engine.metrics = {};
-        
+        // @if DEBUG
+        engine.metrics = Metrics.create(engine.metrics);
+        // @endif
+
         return engine;
     };
 
@@ -86,21 +90,17 @@ var Body = require('../body/Body');
      * @param {number} [correction=1]
      */
     Engine.update = function(engine, delta, correction) {
-        var startTime = Common.now();
-
         delta = delta || 1000 / 60;
         correction = correction || 1;
 
         var world = engine.world,
-            detector = engine.detector,
-            pairs = engine.pairs,
             timing = engine.timing,
-            timestamp = timing.timestamp,
+            broadphase = engine.broadphase,
+            broadphasePairs = [],
             i;
 
         // increment timestamp
         timing.timestamp += delta * timing.timeScale;
-        timing.lastDelta = delta * timing.timeScale;
 
         // create an event object
         var event = {
@@ -109,26 +109,21 @@ var Body = require('../body/Body');
 
         Events.trigger(engine, 'beforeUpdate', event);
 
-        // get all bodies and all constraints in the world
+        // get lists of all bodies and constraints, no matter what composites they are in
         var allBodies = Composite.allBodies(world),
             allConstraints = Composite.allConstraints(world);
 
-        // update the detector bodies if they have changed
-        if (world.isModified) {
-            Detector.setBodies(detector, allBodies);
-        }
+        // @if DEBUG
+        // reset metrics logging
+        Metrics.reset(engine.metrics);
+        // @endif
 
-        // reset all composite modified flags
-        if (world.isModified) {
-            Composite.setModified(world, false, false, true);
-        }
-
-        // update sleeping if enabled
+        // if sleeping enabled, call the sleeping controller
         if (engine.enableSleeping)
             Sleeping.update(allBodies, timing.timeScale);
 
-        // apply gravity to all bodies
-        Engine._bodiesApplyGravity(allBodies, engine.gravity);
+        // applies gravity to all bodies
+        Engine._bodiesApplyGravity(allBodies, world.gravity);
 
         // update all body position and rotation by integration
         Engine._bodiesUpdate(allBodies, delta, timing.timeScale, correction, world.bounds);
@@ -140,12 +135,33 @@ var Body = require('../body/Body');
         }
         Constraint.postSolveAll(allBodies);
 
-        // find all collisions
-        detector.pairs = engine.pairs;
-        var collisions = Detector.collisions(detector);
+        // broadphase pass: find potential collision pairs
+        if (broadphase.controller) {
+            // if world is dirty, we must flush the whole grid
+            if (world.isModified)
+                broadphase.controller.clear(broadphase);
+
+            // update the grid buckets based on current bodies
+            broadphase.controller.update(broadphase, allBodies, engine, world.isModified);
+            broadphasePairs = broadphase.pairsList;
+        } else {
+            // if no broadphase set, we just pass all bodies
+            broadphasePairs = allBodies;
+        }
+
+        // clear all composite modified flags
+        if (world.isModified) {
+            Composite.setModified(world, false, false, true);
+        }
+
+        // narrowphase pass: find actual collisions, then create or update collision pairs
+        var collisions = broadphase.detector(broadphasePairs, engine);
 
         // update collision pairs
+        var pairs = engine.pairs,
+            timestamp = timing.timestamp;
         Pairs.update(pairs, collisions, timestamp);
+        Pairs.removeOld(pairs, timestamp);
 
         // wake up bodies involved in collisions
         if (engine.enableSleeping)
@@ -158,7 +174,7 @@ var Body = require('../body/Body');
         // iteratively resolve position between collisions
         Resolver.preSolvePosition(pairs.list);
         for (i = 0; i < engine.positionIterations; i++) {
-            Resolver.solvePosition(pairs.list, timing.timeScale);
+            Resolver.solvePosition(pairs.list, allBodies, timing.timeScale);
         }
         Resolver.postSolvePosition(allBodies);
 
@@ -182,13 +198,15 @@ var Body = require('../body/Body');
         if (pairs.collisionEnd.length > 0)
             Events.trigger(engine, 'collisionEnd', { pairs: pairs.collisionEnd });
 
+        // @if DEBUG
+        // update metrics log
+        Metrics.update(engine.metrics, engine);
+        // @endif
+
         // clear force buffers
         Engine._bodiesClearForces(allBodies);
 
         Events.trigger(engine, 'afterUpdate', event);
-
-        // log the time elapsed computing this update
-        engine.timing.lastElapsed = Common.now() - startTime;
 
         return engine;
     };
@@ -218,13 +236,21 @@ var Body = require('../body/Body');
     };
 
     /**
-     * Clears the engine pairs and detector.
+     * Clears the engine including the world, pairs and broadphase.
      * @method clear
      * @param {engine} engine
      */
     Engine.clear = function(engine) {
+        var world = engine.world;
+        
         Pairs.clear(engine.pairs);
-        Detector.clear(engine.detector);
+
+        var broadphase = engine.broadphase;
+        if (broadphase.controller) {
+            var bodies = Composite.allBodies(world);
+            broadphase.controller.clear(broadphase);
+            broadphase.controller.update(broadphase, bodies, engine, true);
+        }
     };
 
     /**
@@ -294,8 +320,7 @@ var Body = require('../body/Body');
     };
 
     /**
-     * A deprecated alias for `Runner.run`, use `Matter.Runner.run(engine)` instead and see `Matter.Runner` for more information.
-     * @deprecated use Matter.Runner.run(engine) instead
+     * An alias for `Runner.run`, see `Matter.Runner` for more information.
      * @method run
      * @param {engine} engine
      */
@@ -304,53 +329,53 @@ var Body = require('../body/Body');
     * Fired just before an update
     *
     * @event beforeUpdate
-    * @param {object} event An event object
+    * @param {} event An event object
     * @param {number} event.timestamp The engine.timing.timestamp of the event
-    * @param {engine} event.source The source object of the event
-    * @param {string} event.name The name of the event
+    * @param {} event.source The source object of the event
+    * @param {} event.name The name of the event
     */
 
     /**
     * Fired after engine update and all collision events
     *
     * @event afterUpdate
-    * @param {object} event An event object
+    * @param {} event An event object
     * @param {number} event.timestamp The engine.timing.timestamp of the event
-    * @param {engine} event.source The source object of the event
-    * @param {string} event.name The name of the event
+    * @param {} event.source The source object of the event
+    * @param {} event.name The name of the event
     */
 
     /**
     * Fired after engine update, provides a list of all pairs that have started to collide in the current tick (if any)
     *
     * @event collisionStart
-    * @param {object} event An event object
-    * @param {pair[]} event.pairs List of affected pairs
+    * @param {} event An event object
+    * @param {} event.pairs List of affected pairs
     * @param {number} event.timestamp The engine.timing.timestamp of the event
-    * @param {engine} event.source The source object of the event
-    * @param {string} event.name The name of the event
+    * @param {} event.source The source object of the event
+    * @param {} event.name The name of the event
     */
 
     /**
     * Fired after engine update, provides a list of all pairs that are colliding in the current tick (if any)
     *
     * @event collisionActive
-    * @param {object} event An event object
-    * @param {pair[]} event.pairs List of affected pairs
+    * @param {} event An event object
+    * @param {} event.pairs List of affected pairs
     * @param {number} event.timestamp The engine.timing.timestamp of the event
-    * @param {engine} event.source The source object of the event
-    * @param {string} event.name The name of the event
+    * @param {} event.source The source object of the event
+    * @param {} event.name The name of the event
     */
 
     /**
     * Fired after engine update, provides a list of all pairs that have ended collision in the current tick (if any)
     *
     * @event collisionEnd
-    * @param {object} event An event object
-    * @param {pair[]} event.pairs List of affected pairs
+    * @param {} event An event object
+    * @param {} event.pairs List of affected pairs
     * @param {number} event.timestamp The engine.timing.timestamp of the event
-    * @param {engine} event.source The source object of the event
-    * @param {string} event.name The name of the event
+    * @param {} event.source The source object of the event
+    * @param {} event.name The name of the event
     */
 
     /*
@@ -424,56 +449,32 @@ var Body = require('../body/Body');
      */
 
     /**
-     * A `Number` that represents the total execution time elapsed during the last `Engine.update` in milliseconds.
-     * It is updated by timing from the start of the last `Engine.update` call until it ends.
+     * An instance of a `Render` controller. The default value is a `Matter.Render` instance created by `Engine.create`.
+     * One may also develop a custom renderer module based on `Matter.Render` and pass an instance of it to `Engine.create` via `options.render`.
      *
-     * This value will also include the total execution time of all event handlers directly or indirectly triggered by the engine update.
+     * A minimal custom renderer object must define at least three functions: `create`, `clear` and `world` (see `Matter.Render`).
+     * It is also possible to instead pass the _module_ reference via `options.render.controller` and `Engine.create` will instantiate one for you.
      *
-     * @property timing.lastElapsed
-     * @type number
-     * @default 0
+     * @property render
+     * @type render
+     * @deprecated see Demo.js for an example of creating a renderer
+     * @default a Matter.Render instance
      */
 
     /**
-     * A `Number` that represents the `delta` value used in the last engine update.
+     * An instance of a broadphase controller. The default value is a `Matter.Grid` instance created by `Engine.create`.
      *
-     * @property timing.lastDelta
-     * @type number
-     * @default 0
-     */
-
-    /**
-     * A `Matter.Detector` instance.
-     *
-     * @property detector
-     * @type detector
-     * @default a Matter.Detector instance
-     */
-
-    /**
-     * A `Matter.Grid` instance.
-     *
-     * @deprecated replaced by `engine.detector`
-     * @property grid
-     * @type grid
-     * @default a Matter.Grid instance
-     */
-
-    /**
-     * Replaced by and now alias for `engine.grid`.
-     *
-     * @deprecated replaced by `engine.detector`
      * @property broadphase
      * @type grid
      * @default a Matter.Grid instance
      */
 
     /**
-     * The root `Matter.Composite` instance that will contain all bodies, constraints and other composites to be simulated by this engine.
+     * A `World` composite object that will contain all simulated bodies and constraints.
      *
      * @property world
-     * @type composite
-     * @default a Matter.Composite instance
+     * @type world
+     * @default a Matter.World instance
      */
 
     /**
@@ -481,37 +482,6 @@ var Body = require('../body/Body');
      *
      * @property plugin
      * @type {}
-     */
-
-    /**
-     * The gravity to apply on all bodies in `engine.world`.
-     *
-     * @property gravity
-     * @type object
-     */
-
-    /**
-     * The gravity x component.
-     *
-     * @property gravity.x
-     * @type object
-     * @default 0
-     */
-
-    /**
-     * The gravity y component.
-     *
-     * @property gravity.y
-     * @type object
-     * @default 1
-     */
-
-    /**
-     * The gravity scale factor.
-     *
-     * @property gravity.scale
-     * @type object
-     * @default 0.001
      */
 
 })();

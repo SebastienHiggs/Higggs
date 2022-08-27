@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -16,8 +16,7 @@ var GetCalcMatrix = require('../../../gameobjects/GetCalcMatrix');
  * 4. Sets the alpha value of the context to be that used by the Game Object combined with the Camera.
  * 5. Saves the context state.
  * 6. Sets the final matrix values into the context via setTransform.
- * 7. If the Game Object has a texture frame, imageSmoothingEnabled is set based on frame.source.scaleMode.
- * 8. If the Game Object does not have a texture frame, imageSmoothingEnabled is set based on Renderer.antialias.
+ * 7. If Renderer.antialias, or the frame.source.scaleMode is set, then imageSmoothingEnabled is set.
  *
  * This function is only meant to be used internally. Most of the Canvas Renderer classes use it.
  *
@@ -54,7 +53,7 @@ var SetTransform = function (renderer, ctx, src, camera, parentMatrix)
 
     calcMatrix.setToContext(ctx);
 
-    ctx.imageSmoothingEnabled = src.frame ? !src.frame.source.scaleMode : renderer.antialias;
+    ctx.imageSmoothingEnabled = !(!renderer.antialias || (src.frame && src.frame.source.scaleMode));
 
     return true;
 };

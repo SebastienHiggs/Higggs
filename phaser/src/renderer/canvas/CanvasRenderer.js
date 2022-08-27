@@ -1,7 +1,7 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
  * @author       Felipe Alfonso <@bitnenfer>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -114,8 +114,7 @@ var CanvasRenderer = new Class({
 
         var contextOptions = {
             alpha: game.config.transparent,
-            desynchronized: game.config.desynchronized,
-            willReadFrequently: false
+            desynchronized: game.config.desynchronized
         };
 
         /**
@@ -428,8 +427,6 @@ var CanvasRenderer = new Class({
             ctx.clip();
         }
 
-        camera.emit(CameraEvents.PRE_RENDER, camera);
-
         this.currentContext = ctx;
 
         var mask = camera.mask;
@@ -501,8 +498,6 @@ var CanvasRenderer = new Class({
                 scene.sys.context.drawImage(camera.canvas, cx, cy);
             }
         }
-
-        camera.emit(CameraEvents.POST_RENDER, camera);
     },
 
     /**
@@ -565,7 +560,7 @@ var CanvasRenderer = new Class({
 
         state.getPixel = getPixel;
 
-        CanvasSnapshot(canvas, state);
+        CanvasSnapshot(this.canvas, state);
 
         state.callback = null;
 
@@ -798,12 +793,6 @@ var CanvasRenderer = new Class({
         //  Multiply by the Sprite matrix
         camMatrix.multiply(spriteMatrix);
 
-        if (camera.roundPixels)
-        {
-            camMatrix.e = Math.round(camMatrix.e);
-            camMatrix.f = Math.round(camMatrix.f);
-        }
-
         ctx.save();
 
         camMatrix.setToContext(ctx);
@@ -812,17 +801,14 @@ var CanvasRenderer = new Class({
 
         ctx.globalAlpha = alpha;
 
-        ctx.imageSmoothingEnabled = !frame.source.scaleMode;
+        ctx.imageSmoothingEnabled = !(!this.antialias || frame.source.scaleMode);
 
         if (sprite.mask)
         {
             sprite.mask.preRenderCanvas(this, sprite, camera);
         }
 
-        if (frameWidth > 0 && frameHeight > 0)
-        {
-            ctx.drawImage(frame.source.image, frameX, frameY, frameWidth, frameHeight, x, y, frameWidth / res, frameHeight / res);
-        }
+        ctx.drawImage(frame.source.image, frameX, frameY, frameWidth, frameHeight, x, y, frameWidth / res, frameHeight / res);
 
         if (sprite.mask)
         {

@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2020 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -78,16 +78,13 @@ var TilemapLayerWebGLRenderer = function (renderer, src, camera)
         var tw = tileset.tileWidth * 0.5;
         var th = tileset.tileHeight * 0.5;
 
-        var tOffsetX = tileset.tileOffset.x;
-        var tOffsetY = tileset.tileOffset.y;
-
         var tint = getTint(tile.tint, alpha * tile.alpha);
 
         pipeline.batchTexture(
             src,
             texture,
             texture.width, texture.height,
-            x + tile.pixelX * sx + (tw * sx - tOffsetX), y + tile.pixelY * sy + (th * sy - tOffsetY),
+            x + ((tw + tile.pixelX) * sx), y + ((th + tile.pixelY) * sy),
             tile.width, tile.height,
             sx, sy,
             tile.rotation,
