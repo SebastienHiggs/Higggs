@@ -5,6 +5,8 @@ let gameScene = new Phaser.Scene('Game');
 gameScene.preload = function(){
     this.load.image('background','phaser/imgs/back.png');
     this.load.image('powerplant','phaser/imgs/powerplant.png');
+
+    this.load.audio('click','phaser/imgs/click.mp3');
 }
 
 //called once after preload
@@ -14,6 +16,9 @@ gameScene.create = function() {
     let pp = this.add.sprite(1000,500,'powerplant');
     pp.depth =  1; //not necessary here but good for refence
     pp.setScale(0.3);
+
+    let clickSound = this.sound.add('click');
+    clickSound.play();
 }
 
 //config
