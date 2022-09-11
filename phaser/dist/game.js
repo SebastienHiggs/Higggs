@@ -13,22 +13,27 @@ gameScene.preload = function(){
 gameScene.create = function() {
     let bg = this.add.sprite(0,0,'background');
     bg.setOrigin(0,0);
-    let pp = this.add.sprite(1650,500,'powerplant');
-    pp.depth =  1; //not necessary here but good for refence
-    pp.setScale(0.3);
+    //let pp = this.add.sprite(1700,500,'powerplant');
+    //pp.depth =  1; //not necessary here but good for refence
+    //pp.setScale(0.3);
 
     let clickSound = this.sound.add('click');
-    clickSound.play();
-
-    Phaser.Actions.Call(this.items.getChildren(),function(item){
-        item.setInteractive();
-        item.on('pointerdown',function(pointer){
-            console.log('you clicked ' + item.texture.key);
-            //if item.texture.key == 
-            clickSound.play();
-        });
-    }, this);
     
+
+    var pp = this.add.sprite(1700, 500, 'powerplant').setInteractive();
+    pp.setScale(0.3);
+    pp.on('pointerdown', function (pointer) {
+        clickSound.play();
+        pp.setScale(0.32);
+    });
+    pp.on('pointerout', function (pointer) {
+        this.clearTint();
+        pp.setScale(0.3);
+    });
+    pp.on('pointerup', function (pointer) {
+        this.clearTint();
+        pp.setScale(0.3);
+    });
 };
 
 //config
