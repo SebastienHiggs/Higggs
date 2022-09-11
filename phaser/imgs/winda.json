@@ -1,0 +1,62 @@
+{
+	"textures": [
+		{
+			"image": "winda.png",
+			"format": "RGBA8888",
+			"size": {
+				"w": 3132,
+				"h": 1299
+			},
+			"scale": 1,
+			"frames": [
+				{
+					"filename": "wind1",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 1550,
+						"h": 1299
+					},
+					"spriteSourceSize": {
+						"x": 70,
+						"y": 40,
+						"w": 278,
+						"h": 478
+					},
+					"frame": {
+						"x": 2,
+						"y": 2,
+						"w": 278,
+						"h": 478
+					}
+				},
+				{
+					"filename": "wind2",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 1550,
+						"h": 1299
+					},
+					"spriteSourceSize": {
+						"x": 45,
+						"y": 48,
+						"w": 311,
+						"h": 460
+					},
+					"frame": {
+						"x": 2,
+						"y": 482,
+						"w": 311,
+						"h": 460
+					}
+				}
+			]
+		}
+	],
+	"meta": {
+		"app": "https://www.codeandweb.com/texturepacker",
+		"version": "3.0",
+		"smartupdate": "$TexturePacker:SmartUpdate:7d3d0c040dc8ed03e2c55708aa15c5f9:3dbbb634f7a63c0672e3dc3efd57b6e1:e161ddd55ddfa678a26a54f2c7483dda$"
+	}
+}
